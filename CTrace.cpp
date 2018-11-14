@@ -1,6 +1,13 @@
 #include <CTrace.h>
 #include <ctime>
 #include <cstdarg>
+#if defined(_WIN32)
+#include <atlstr.h>
+#include <winbase.h>
+#endif
+
+namespace Namspace_Trace
+{
 using namespace Namspace_Trace;
 const std::string DEFAULT_LOG_FILE = ".\\trace.log";
 
@@ -13,7 +20,7 @@ CTrace::CTrace()
 }
 CTrace::~CTrace()
 {
-
+	CloseLogFile();
 }
 CTrace* CTrace::Instance()
 {
@@ -51,7 +58,7 @@ void CTrace::CloseLogFile()
 		m_bInit = false;
 	}
 }
-const bool CTrace::SetLogFile(const std::string& strLogFile)
+const bool CTrace::Init(const std::string& strLogFile)
 {
 	if (strLogFile != m_strfilePath)
 	{
@@ -100,52 +107,66 @@ const std::string CTrace::GetLogLevelString(LogLevel Level)
 	}
 	return str;
 }
-void CTrace::Trace(LogLevel Level, const std::string& strLog)
+void CTrace::ToFile(const std::string& strLog)//main out
 {
-	if (!CheckLogLevl(Level))//if log out
-	{
-		return;
-	}
-	std::string str = GetLogLevelString(Level) + strLog;//appand level
-	Trace(str);
-}
-void CTrace::Trace(const std::string& strLog)//main out
-{
-	if (!m_bInit)
-	{
-		if (!SetLogFile(DEFAULT_LOG_FILE))
-		{
-			return;
-		}
-	}
-	m_file << "[" << GetCurrTime().c_str() << "]" << strLog.c_str() << std::endl;
+	m_file << strLog.c_str();
 	m_file.flush();
 }
 
 void CTrace::Trace(LogLevel Level, const char* format, ...)
 {
-	if (!CheckLogLevl(Level))//if log out
-	{
-		return;
-	}
+	std::string str = "";
 	char cTemp[512] = { 0 };
 	va_list ap;
 	va_start(ap, format);
 	vsnprintf(cTemp, sizeof(cTemp), format, ap);
 	va_end(ap);
-	std::string str = GetLogLevelString(Level) + cTemp;//appand level
-	Trace(str);
+	str += "[";
+	str += GetCurrTime();
+	str += "]";
+	str += GetLogLevelString(Level);
+	str += cTemp;
+	str += "\n";
+	if (CheckLogLevl(Level))
+	{
+		if (!m_bInit)
+		{
+			if (Init(DEFAULT_LOG_FILE))
+			{
+				ToFile(str);
+			}
+		}
+		else
+		{
+			ToFile(str);
+		}
+	}
+
+#if defined(_WIN32) && defined(_DEBUG)
+	OutputDebugString(str.c_str());
+#endif
 }
 
 void CTrace::Trace(const char* format, ...)
 {
+#if defined(_DEBUG)
 	char cTemp[512] = { 0 };
 	va_list ap;
 	va_start(ap, format);
 	vsnprintf(cTemp, sizeof(cTemp), format, ap);
 	va_end(ap);
-	std::string str(cTemp);
-	Trace(str);
+	std::string str = "";
+	str += "[";
+	str += GetCurrTime();
+	str += "]";
+	str += cTemp;
+	str += "\n";
+#if	defined(_WIN32)
+	OutputDebugString(str.c_str());
+#else
+	std::cout << str;
+#endif
+#endif
 }
 
 void CTrace::SetLogLevel(LogLevel enLevel)
@@ -169,4 +190,5 @@ const bool CTrace::CheckLogLevl(LogLevel enLevel)
 		bRet = false;
 	}
 	return bRet;
+}
 }

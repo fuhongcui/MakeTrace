@@ -12,9 +12,9 @@ namespace Namspace_Trace
 #define FileName(x) strrchr(x,'/')?strrchr(x,'/')+1:x
 #endif
 
-#define TRACE_LOG_TYPE(LogLevel, format, ...)\
+#define TraceLevel(LogLevel, format, ...)\
 CTrace::Instance()->Trace(LogLevel, "[%s:%d]"##format, FileName(__FILE__), __LINE__, __VA_ARGS__)
-#define TRACE_LOG(format, ...)\
+#define TraceDebug(format, ...)\
 CTrace::Instance()->Trace("[%s:%d]"##format, FileName(__FILE__), __LINE__, __VA_ARGS__)
 
 enum LogLevel
@@ -33,14 +33,13 @@ public:
 	~CTrace();
 public:
 	static CTrace* Instance();
-	const bool SetLogFile(const std::string& strLogFile);
-	void Trace(LogLevel enLevel, const std::string& strLog);
-	void Trace(const std::string& strLog);
+	const bool Init(const std::string& strLogFile);
 	void Trace(LogLevel enLevel, const char* format, ...);
 	void Trace(const char* format, ...);
-	void SetLogLevel(LogLevel enLevel);
 	static void Destroy();
 private:
+	void ToFile(const std::string& strLog);
+	void SetLogLevel(LogLevel enLevel);
 	void CloseLogFile();
 	std::string GetCurrTime();
 	const bool CheckLogLevl(LogLevel enLevel);
